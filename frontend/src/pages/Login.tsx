@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, User, AlertCircle, RefreshCw } from 'lucide-react';
+import RadarBackground from '../components/ui/RadarBackground';
+import GlowPanel from '../components/ui/GlowPanel';
+import GlowButton from '../components/ui/GlowButton';
+import StatusBadge from '../components/ui/StatusBadge';
+import { Shield, Lock, User, RefreshCw } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
@@ -54,94 +58,109 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center font-sans relative overflow-hidden px-4">
-      {/* Background glow graphics */}
-      <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-purple-900/10 blur-[150px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-900/10 blur-[150px] pointer-events-none"></div>
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center font-sans relative overflow-hidden px-4 select-none">
+      {/* Ambient Console Sweep in background */}
+      <RadarBackground />
 
-      <div className="w-full max-w-md bg-slate-900/50 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md relative z-10 shadow-2xl shadow-purple-500/5">
-        <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-xl shadow-purple-500/20">
-            <Shield className="w-8 h-8 text-white animate-pulse" />
+      <div className="w-full max-w-md relative z-10 space-y-6">
+        
+        {/* Logo/Identity Section */}
+        <div className="flex flex-col items-center gap-2.5 text-center">
+          <div className="p-3 bg-gradient-to-br from-amber-500/20 to-amber-700/20 border border-[var(--border-subtle)] rounded-2xl shadow-xl shadow-amber-500/5">
+            <Shield className="w-7 h-7 text-[var(--accent-amber)] animate-pulse" />
           </div>
-          <div className="text-center">
-            <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">
-              ThreatSim AI - SOC Portal
-            </h2>
-            <p className="text-slate-400 text-xs mt-1">
-              Authorized cybersecurity analysts only
+          <div>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight leading-tight uppercase font-display">
+              ThreatSim AI
+            </h1>
+            <p className="text-[var(--text-secondary)] text-[10px] tracking-widest uppercase font-semibold mt-0.5">
+              SOC Command Console
             </p>
           </div>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-950/20 border border-red-500/20 rounded-2xl flex items-start gap-3 animate-headShake text-red-400 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+        {/* GlowPanel form wrapper */}
+        <GlowPanel className="p-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <span className="font-bold">Access Denied: </span>
-              {error}
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="text-slate-400 text-xs font-semibold block mb-2">
-              Username
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                <User className="w-4 h-4" />
+              <label className="text-[var(--text-secondary)] text-[10px] uppercase font-semibold block mb-2">
+                Analyst Username
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <User className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  disabled={loading}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter analyst ID"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-subtle)] focus:border-[var(--accent-amber)] focus:ring-1 focus:ring-[var(--accent-amber)] rounded-[var(--radius-sm)] py-2.5 pl-10 pr-4 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                />
               </div>
-              <input
-                type="text"
-                required
-                disabled={loading}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="w-full bg-slate-950 border border-slate-800/80 hover:border-slate-700/80 focus:border-purple-500 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
-              />
             </div>
-          </div>
 
-          <div>
-            <label className="text-slate-400 text-xs font-semibold block mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                <Lock className="w-4 h-4" />
+            <div>
+              <label className="text-[var(--text-secondary)] text-[10px] uppercase font-semibold block mb-2">
+                Analyst Passcode
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  disabled={loading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter secure passcode"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-subtle)] focus:border-[var(--accent-amber)] focus:ring-1 focus:ring-[var(--accent-amber)] rounded-[var(--radius-sm)] py-2.5 pl-10 pr-4 text-xs text-white placeholder-slate-600 outline-none transition-all"
+                />
               </div>
-              <input
-                type="password"
-                required
-                disabled={loading}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter secure password"
-                className="w-full bg-slate-950 border border-slate-800/80 hover:border-slate-700/80 focus:border-purple-500 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-100 placeholder-slate-600 outline-none transition-all"
-              />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:from-purple-800 disabled:to-indigo-800 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Authenticating Credentials...
-              </>
-            ) : (
-              'Access Security Operations'
+            {error && (
+              <div className="p-3 bg-orange-950/15 border border-orange-500/20 rounded-[var(--radius-sm)] flex items-start gap-2.5 text-xs text-orange-400 animate-headShake">
+                <StatusBadge status="High" className="shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-white">Access Denied:</span> {error}
+                </div>
+              </div>
             )}
-          </button>
-        </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-800/50 text-center">
+            <GlowButton
+              type="submit"
+              disabled={loading}
+              variant="primary"
+              className="w-full py-2.5 mt-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  Console Auth Sequence...
+                </>
+              ) : (
+                'Access Security Console'
+              )}
+            </GlowButton>
+          </form>
+        </GlowPanel>
+
+        {/* Footer with Replay trigger and Seeding notes */}
+        <div className="text-center space-y-3">
+          <button 
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem('hasSeenIntro');
+              window.dispatchEvent(new Event('replay-intro'));
+            }}
+            className="text-[9px] uppercase tracking-wider text-[var(--accent-amber)] hover:text-white transition-colors cursor-pointer select-none font-bold focus:outline-none focus:underline"
+          >
+            Replay console initialization sequence
+          </button>
           <div className="text-[10px] text-slate-500 leading-normal">
             <p>Seeded credentials can be found in the server log outputs on first run.</p>
             <p className="mt-1">All session activities are tracked and cryptographically audited.</p>

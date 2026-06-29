@@ -5,7 +5,7 @@ This project is a Cybersecurity Threat Simulator and Detection system built as a
 ## Project Structure
 
 ```text
-Final_Year_Project/
+Cybersecurity_Threat_Simulator_Powered_by_AI/
 ├── backend/                  # FastAPI Backend Application
 │   ├── app/                  # Main application source code
 │   │   ├── __init__.py

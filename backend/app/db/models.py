@@ -18,6 +18,11 @@ class Alert(SQLModel, table=True):
     confidence: float
     tier: int
     source_scenario: str = Field(default="simulation")
+    severity: str = Field(default="Medium")
+    source_ip: str = Field(default="10.0.0.1")
+    dest_ip: str = Field(default="192.168.10.50")
+    source_port: int = Field(default=0)
+    dest_port: int = Field(default=0)
     raw_features: str = Field(default="{}")  # JSON-encoded input feature dictionary
 
 class UserCreate(SQLModel):

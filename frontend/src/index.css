@@ -1,9 +1,18 @@
 @import "tailwindcss";
 
-/* Optional custom theme overrides or base styling if necessary */
+@import "./styles/tokens.css";
+
+/* Global Base Overrides mapped to Command Center Tokens */
 body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-base) !important;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display) !important;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono) !important;
 }

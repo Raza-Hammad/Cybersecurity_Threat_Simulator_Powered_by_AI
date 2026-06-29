@@ -1,5 +1,6 @@
 import json
 import urllib.request
+import urllib.parse
 import urllib.error
 
 def test_api():
@@ -77,6 +78,27 @@ def test_api():
         }
     }
     
+    # Login first
+    login_url = "http://127.0.0.1:8000/api/auth/login"
+    login_data = urllib.parse.urlencode({"username": "admin", "password": "Admin@652f0915!"}).encode("utf-8")
+    try:
+        req = urllib.request.Request(
+            login_url,
+            data=login_data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req) as res:
+            login_res = json.loads(res.read().decode("utf-8"))
+            token = login_res["access_token"]
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {token}"
+            }
+    except Exception as e:
+        print(f"Failed to authenticate admin user for test: {e}")
+        return
+
     url = "http://127.0.0.1:8000/api/predict"
     
     for name, payload in [("Benign Flow", benign_payload), ("Threat-Like Flow", threat_payload)]:
@@ -85,7 +107,7 @@ def test_api():
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 method="POST"
             )
             with urllib.request.urlopen(req) as response:

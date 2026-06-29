@@ -4,6 +4,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from app.config import settings
+from app.ml.severity import compute_severity
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,50 @@ class CascadeDetector:
             logger.info(f"Loading {name} model into memory...")
             self.models[name] = joblib.load(path)
             
+        # Load or precompute benign averages once
+        benign_averages_path = cache_dir / "benign_averages.json"
+        if benign_averages_path.exists():
+            try:
+                logger.info("Loading precomputed benign averages from cache...")
+                with open(benign_averages_path, "r") as f:
+                    self.benign_averages = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load cached benign averages: {e}. Recomputing...")
+                self.benign_averages = None
+        else:
+            self.benign_averages = None
+
+        if self.benign_averages is None:
+            logger.info("Precomputing benign averages from test dataset split...")
+            npz_path = cache_dir / "processed_data.npz"
+            if npz_path.exists():
+                try:
+                    data = np.load(npz_path, mmap_mode="r")
+                    X_test = data["X_test"]
+                    y_test = data["y_test"]
+                    
+                    # Decode labels to find index of BENIGN
+                    benign_idx = list(self.label_encoder.classes_).index("BENIGN")
+                    benign_indices = np.where(y_test == benign_idx)[0]
+                    if len(benign_indices) > 0:
+                        scaled_means = np.mean(X_test[benign_indices], axis=0)
+                        unscaled_means = self.scaler.inverse_transform(scaled_means.reshape(1, -1))[0]
+                        self.benign_averages = {
+                            name: float(val) for name, val in zip(self.selected_features, unscaled_means)
+                        }
+                        with open(benign_averages_path, "w") as f:
+                            json.dump(self.benign_averages, f)
+                        logger.info(f"Saved precomputed benign averages to {benign_averages_path}")
+                    else:
+                        logger.warning("No benign samples found in test set!")
+                        self.benign_averages = {name: 0.0 for name in self.selected_features}
+                except Exception as ex:
+                    logger.error(f"Error computing benign averages: {ex}")
+                    self.benign_averages = {name: 0.0 for name in self.selected_features}
+            else:
+                logger.warning(f"Test dataset NPZ not found at {npz_path}. Initializing default averages.")
+                self.benign_averages = {name: 0.0 for name in self.selected_features}
+            
         logger.info("CascadeDetector initialized and all assets loaded.")
         
     def detect(self, features_dict: dict, threshold: float = None) -> dict:
@@ -72,6 +117,7 @@ class CascadeDetector:
               - tier (int): 1, 2, or 3.
               - tier_name (str): Readable name of the tier that resolved the request.
               - top_features (list): 3-5 most important features for this decision.
+              - raw_features (dict): The original flow packet features mapping.
         """
         if threshold is None:
             threshold = self.confidence_threshold
@@ -109,12 +155,14 @@ class CascadeDetector:
                 raw_val = float(features_dict.get(feat_name, 0.0))
                 importance_val = float(importances[idx])
                 impact_val = float(impacts[idx])
+                benign_avg_val = float(self.benign_averages.get(feat_name, 0.0))
                 
                 top_feats.append({
                     "feature": feat_name,
                     "value": raw_val,
                     "importance": importance_val,
-                    "impact": impact_val
+                    "impact": impact_val,
+                    "benign_avg": benign_avg_val
                 })
             return top_feats
 
@@ -131,7 +179,10 @@ class CascadeDetector:
                 "confidence": lgb_conf,
                 "tier": 1,
                 "tier_name": "Tier 1: LightGBM (Fast Screener)",
-                "top_features": get_top_features(scaled_vector)
+                "top_features": get_top_features(scaled_vector),
+                "raw_features": features_dict,
+                "benign_averages": self.benign_averages,
+                "severity": compute_severity(str(predicted_class), lgb_conf)
             }
             
         # --- Tier 2: Random Forest (Explainable Validator) ---
@@ -147,7 +198,10 @@ class CascadeDetector:
                 "confidence": rf_conf,
                 "tier": 2,
                 "tier_name": "Tier 2: Random Forest (Explainable Validator)",
-                "top_features": get_top_features(scaled_vector)
+                "top_features": get_top_features(scaled_vector),
+                "raw_features": features_dict,
+                "benign_averages": self.benign_averages,
+                "severity": compute_severity(str(predicted_class), rf_conf)
             }
             
         # --- Tier 3: XGBoost & Weighted Vote (Expert Ensemble) ---
@@ -169,7 +223,10 @@ class CascadeDetector:
             "confidence": final_conf,
             "tier": 3,
             "tier_name": "Tier 3: XGBoost (Weighted Cascade Vote)",
-            "top_features": get_top_features(scaled_vector)
+            "top_features": get_top_features(scaled_vector),
+            "raw_features": features_dict,
+            "benign_averages": self.benign_averages,
+            "severity": compute_severity(str(predicted_class), final_conf)
         }
 
 # Singletons to cache loaded assets in memory for backward compatibility

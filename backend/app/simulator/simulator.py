@@ -9,6 +9,7 @@ from sqlmodel import Session
 from app.config import settings
 from app.db import engine, Alert
 from app.ml.cascade import get_detector
+from app.ml.metadata_helper import get_raw_flow_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +188,13 @@ class SimulationEngine:
                 confidence = result["confidence"]
                 tier = result["tier"]
                 
+                # Retrieve realistic, deterministic network metadata for visualization
+                src_ip, dest_ip, src_port, dest_port = get_raw_flow_metadata(idx, predicted_label)
+                result["source_ip"] = src_ip
+                result["dest_ip"] = dest_ip
+                result["source_port"] = src_port
+                result["dest_port"] = dest_port
+                
                 # 5. Persist non-benign threat predictions as SQLModel Alerts
                 if predicted_label.upper() != "BENIGN":
                     try:
@@ -196,6 +204,11 @@ class SimulationEngine:
                                 confidence=confidence,
                                 tier=tier,
                                 source_scenario=self.current_scenario,
+                                severity=result.get("severity", "Medium"),
+                                source_ip=src_ip,
+                                dest_ip=dest_ip,
+                                source_port=src_port,
+                                dest_port=dest_port,
                                 raw_features=json.dumps(features_dict)
                             )
                             session.add(alert)
